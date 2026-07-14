@@ -4,7 +4,59 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url = env("DATABASE_URL")
 }
 
-// Models (User, Monitor, Check, Incident) added in Phase 1.
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  createdAt    DateTime  @default(now())
+  monitors     Monitor[]
+}
+
+model Monitor {
+  id              String     @id @default(uuid())
+  userId          String
+  user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  url             String
+  intervalSeconds Int        @default(60)
+  expectedStatus  Int        @default(200)
+  isActive        Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  checks          Check[]
+  incidents       Incident[]
+
+  @@index([userId])
+}
+
+model Check {
+  id           String    @id @default(uuid())
+  monitorId    String
+  monitor      Monitor   @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  statusCode   Int?
+  latencyMs    Int?
+  success      Boolean
+  tlsExpiresAt DateTime?
+  error        String?
+  checkedAt    DateTime  @default(now())
+
+  @@index([monitorId, checkedAt])
+}
+
+enum IncidentStatus {
+  OPEN
+  RESOLVED
+}
+
+model Incident {
+  id         String         @id @default(uuid())
+  monitorId  String
+  monitor    Monitor        @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  status     IncidentStatus @default(OPEN)
+  openedAt   DateTime       @default(now())
+  resolvedAt DateTime?
+
+  @@index([monitorId, status])
+}
