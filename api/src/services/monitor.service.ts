@@ -30,7 +30,9 @@ export class MonitorService {
       data: input,
     });
     if (result.count === 0) throw new NotFoundError('Monitor not found');
-    return this.prisma.monitor.findUnique({ where: { id } });
+    const monitor = await this.prisma.monitor.findUnique({ where: { id } });
+    if (!monitor) throw new NotFoundError('Monitor not found');
+    return monitor;
   }
 
   async delete(userId: string, id: string) {

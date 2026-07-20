@@ -1,6 +1,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import { MonitorService } from '../services/monitor.service.js';
 import { createMonitorSchema, updateMonitorSchema } from '../lib/validation.js';
+import { scheduleMonitorChecks, unscheduleMonitorChecks } from '../lib/queue.js';
 
 export class MonitorController {
   constructor(private monitorService: MonitorService) {}
@@ -20,7 +21,9 @@ export class MonitorController {
       return;
     }
     try {
-      res.status(201).json(await this.monitorService.create(req.user!.sub, parsed.data));
+      const monitor = await this.monitorService.create(req.user!.sub, parsed.data);
+      await scheduleMonitorChecks(monitor.id, monitor.intervalSeconds);
+      res.status(201).json(monitor);
     } catch (err) {
       next(err);
     }
@@ -41,7 +44,13 @@ export class MonitorController {
       return;
     }
     try {
-      res.json(await this.monitorService.update(req.user!.sub, req.params.id, parsed.data));
+      const monitor = await this.monitorService.update(req.user!.sub, req.params.id, parsed.data);
+      if (monitor.isActive) {
+        await scheduleMonitorChecks(monitor.id, monitor.intervalSeconds);
+      } else {
+        await unscheduleMonitorChecks(monitor.id);
+      }
+      res.json(monitor);
     } catch (err) {
       next(err);
     }
@@ -50,6 +59,7 @@ export class MonitorController {
   delete = async (req: Request, res: Response, next: NextFunction) => {
     try {
       await this.monitorService.delete(req.user!.sub, req.params.id);
+      await unscheduleMonitorChecks(req.params.id);
       res.status(204).send();
     } catch (err) {
       next(err);
