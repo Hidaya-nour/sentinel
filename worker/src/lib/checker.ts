@@ -8,6 +8,7 @@ export interface CheckResult {
   latencyMs?: number;
   tlsExpiresAt?: Date;
   error?: string;
+  finalUrl?: string;
 }
 
 export async function performCheck(url: string, expectedStatus: number): Promise<CheckResult> {
@@ -17,6 +18,7 @@ export async function performCheck(url: string, expectedStatus: number): Promise
       method: 'GET',
       headersTimeout: 10_000,
       bodyTimeout: 10_000,
+      maxRedirections: 5, // follow up to 5 redirects, then treat further redirects as failure
     });
     const latencyMs = Date.now() - start;
 
@@ -25,6 +27,10 @@ export async function performCheck(url: string, expectedStatus: number): Promise
     await res.body.text();
 
     const success = res.statusCode === expectedStatus;
+    const finalUrl =
+      res.context && typeof res.context === 'object' && 'history' in res.context
+        ? undefined // undici doesn't expose redirect history simply; skip for now
+        : undefined;
 
     let tlsExpiresAt: Date | undefined;
     if (url.startsWith('https://')) {
