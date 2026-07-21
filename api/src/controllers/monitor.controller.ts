@@ -65,4 +65,19 @@ export class MonitorController {
       next(err);
     }
   };
+  listChecks = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json(await this.monitorService.listChecks(req.user!.sub, req.params.id));
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  listIncidents = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json(await this.monitorService.listIncidents(req.user!.sub, req.params.id));
+    } catch (err) {
+      next(err);
+    }
+  };
 }

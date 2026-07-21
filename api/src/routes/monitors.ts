@@ -13,3 +13,5 @@ monitorsRouter.post('/', controller.create);
 monitorsRouter.get('/:id', controller.getById);
 monitorsRouter.patch('/:id', controller.update);
 monitorsRouter.delete('/:id', controller.delete);
+monitorsRouter.get('/:id/checks', controller.listChecks);
+monitorsRouter.get('/:id/incidents', controller.listIncidents);

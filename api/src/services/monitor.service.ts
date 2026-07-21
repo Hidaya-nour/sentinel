@@ -39,4 +39,20 @@ export class MonitorService {
     const result = await this.prisma.monitor.deleteMany({ where: { id, userId } });
     if (result.count === 0) throw new NotFoundError('Monitor not found');
   }
+  async listChecks(userId: string, monitorId: string) {
+    await this.getById(userId, monitorId); // throws NotFoundError if not owned - reuses ownership check
+    return this.prisma.check.findMany({
+      where: { monitorId },
+      orderBy: { checkedAt: 'desc' },
+      take: 50,
+    });
+  }
+
+  async listIncidents(userId: string, monitorId: string) {
+    await this.getById(userId, monitorId);
+    return this.prisma.incident.findMany({
+      where: { monitorId },
+      orderBy: { openedAt: 'desc' },
+    });
+  }
 }
