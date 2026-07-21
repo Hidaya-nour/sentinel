@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { prisma } from '../lib/prisma.js';
+import { requireAuth } from '../middleware/auth.js';
 import { AuthService } from '../services/auth.service.js';
 import { AuthController } from '../controllers/auth.controller.js';
 
@@ -16,3 +17,5 @@ const controller = new AuthController(new AuthService(prisma));
 export const authRouter = Router();
 authRouter.post('/register', authLimiter, controller.register);
 authRouter.post('/login', authLimiter, controller.login);
+authRouter.post('/logout', controller.logout);
+authRouter.get('/me', requireAuth, controller.me);

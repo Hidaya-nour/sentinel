@@ -11,17 +11,16 @@ declare global {
 }
 
 export function requireAuth(req: Request, res: Response, next: NextFunction): void {
-  const header = req.headers.authorization;
-  if (!header?.startsWith('Bearer ')) {
-    res.status(401).json({ error: 'Missing or malformed Authorization header' });
+  const token = req.cookies?.token;
+  if (!token) {
+    res.status(401).json({ error: 'Not authenticated' });
     return;
   }
 
-  const token = header.slice('Bearer '.length);
   try {
     req.user = verifyToken(token);
     next();
   } catch {
-    res.status(401).json({ error: 'Invalid or expired token' });
+    res.status(401).json({ error: 'Invalid or expired session' });
   }
 }
