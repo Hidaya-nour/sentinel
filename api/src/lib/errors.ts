@@ -3,12 +3,12 @@
 // by a CLI script or a background job with zero changes.
 
 export class AppError extends Error {
-  constructor(
-    message: string,
-    public statusCode: number,
-  ) {
+  public status: number;
+
+  constructor(message: string, status: number) {
     super(message);
     this.name = this.constructor.name;
+    this.status = status;
   }
 }
 

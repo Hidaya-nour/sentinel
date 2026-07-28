@@ -1,18 +1,18 @@
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
 
 export class ApiError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-  ) {
+  status: number;
+
+  constructor(message: string, status: number) {
     super(message);
+    this.status = status;
   }
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
-    credentials: 'include', // sends the httpOnly cookie automatically
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
