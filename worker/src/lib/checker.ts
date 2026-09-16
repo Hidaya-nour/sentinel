@@ -27,11 +27,6 @@ export async function performCheck(url: string, expectedStatus: number): Promise
     await res.body.text();
 
     const success = res.statusCode === expectedStatus;
-    const finalUrl =
-      res.context && typeof res.context === 'object' && 'history' in res.context
-        ? undefined // undici doesn't expose redirect history simply; skip for now
-        : undefined;
-
     let tlsExpiresAt: Date | undefined;
     if (url.startsWith('https://')) {
       tlsExpiresAt = await getTlsExpiry(url).catch(() => undefined);
