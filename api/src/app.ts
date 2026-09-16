@@ -27,7 +27,7 @@ export function createApp() {
   app.use(
     (err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
       if (err instanceof AppError) {
-        res.status(err.statusCode).json({ error: err.message });
+        res.status(err.status).json({ error: err.message });
         return;
       }
       console.error(JSON.stringify({ level: 'error', msg: 'unhandled error', err: String(err) }));

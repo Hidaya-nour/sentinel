@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { PrismaClient } from '@prisma/client';
 
 process.env.JWT_SECRET = 'test-secret-do-not-use-in-prod';
 
@@ -14,7 +15,7 @@ function makeMockPrisma() {
       findUnique: vi.fn(),
       create: vi.fn(),
     },
-  } as any;
+  };
 }
 
 describe('AuthService.register', () => {
@@ -23,7 +24,7 @@ describe('AuthService.register', () => {
 
   beforeEach(() => {
     prisma = makeMockPrisma();
-    service = new AuthService(prisma);
+    service = new AuthService(prisma as unknown as PrismaClient);
   });
 
   it('throws ConflictError if the email is already registered', async () => {
@@ -55,7 +56,7 @@ describe('AuthService.login', () => {
 
   beforeEach(() => {
     prisma = makeMockPrisma();
-    service = new AuthService(prisma);
+    service = new AuthService(prisma as unknown as PrismaClient);
   });
 
   it('throws UnauthorizedError when the user does not exist', async () => {

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { PrismaClient } from '@prisma/client';
 import { MonitorService } from './monitor.service.js';
 import { NotFoundError } from '../lib/errors.js';
 
@@ -12,7 +13,7 @@ function makeMockPrisma() {
       findUnique: vi.fn(),
       deleteMany: vi.fn(),
     },
-  } as any;
+  };
 }
 
 describe('MonitorService', () => {
@@ -21,7 +22,7 @@ describe('MonitorService', () => {
 
   beforeEach(() => {
     prisma = makeMockPrisma();
-    service = new MonitorService(prisma);
+    service = new MonitorService(prisma as unknown as PrismaClient);
   });
 
   it('getById throws NotFoundError when no matching row for that user', async () => {
