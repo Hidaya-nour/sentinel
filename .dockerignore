@@ -1,9 +1,11 @@
 node_modules
 **/node_modules
+dist
 **/dist
 **/.env
 **/.env.*
 !**/.env.example
 .git
+npm-debug.log*
 **/*.test.ts
 coverage
