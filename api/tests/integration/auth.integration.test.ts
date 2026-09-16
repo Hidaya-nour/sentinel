@@ -5,14 +5,17 @@ import { createApp } from '../../src/app.js';
 const app = createApp();
 
 describe('POST /auth/register', () => {
-  it('registers a new user and returns a token', async () => {
+  it('registers a new user and sets an auth cookie', async () => {
     const res = await request(app)
       .post('/auth/register')
       .send({ email: 'integration@test.com', password: 'correcthorsebattery' });
 
     expect(res.status).toBe(201);
-    expect(res.body.token).toBeTypeOf('string');
     expect(res.body.user.email).toBe('integration@test.com');
+    // Token is no longer in the body - it's set as an httpOnly cookie instead.
+    expect(res.headers['set-cookie']).toBeDefined();
+    expect(res.headers['set-cookie'][0]).toContain('token=');
+    expect(res.headers['set-cookie'][0]).toContain('HttpOnly');
   });
 
   it('rejects a duplicate email with 409', async () => {
@@ -37,7 +40,7 @@ describe('POST /auth/register', () => {
 });
 
 describe('POST /auth/login', () => {
-  it('logs in with correct credentials', async () => {
+  it('logs in with correct credentials and sets an auth cookie', async () => {
     await request(app)
       .post('/auth/register')
       .send({ email: 'login@test.com', password: 'correcthorsebattery' });
@@ -47,7 +50,7 @@ describe('POST /auth/login', () => {
       .send({ email: 'login@test.com', password: 'correcthorsebattery' });
 
     expect(res.status).toBe(200);
-    expect(res.body.token).toBeTypeOf('string');
+    expect(res.headers['set-cookie']).toBeDefined();
   });
 
   it('rejects wrong password with 401', async () => {

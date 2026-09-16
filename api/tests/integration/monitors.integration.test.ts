@@ -4,75 +4,60 @@ import { createApp } from '../../src/app.js';
 
 const app = createApp();
 
-async function registerAndGetToken(email: string) {
-  const res = await request(app)
-    .post('/auth/register')
-    .send({ email, password: 'correcthorsebattery' });
-  return res.body.token as string;
+// request.agent() persists cookies across requests on the same agent instance,
+// exactly like a real browser session - this is what lets us "log in once,
+// stay logged in" across multiple calls, matching how the cookie-based auth
+// actually works end to end.
+async function registeredAgent(email: string) {
+  const agent = request.agent(app);
+  await agent.post('/auth/register').send({ email, password: 'correcthorsebattery' });
+  return agent;
 }
 
 describe('Monitor ownership isolation', () => {
-  let userAToken: string;
-  let userBToken: string;
-
-  beforeEach(async () => {
-    userAToken = await registerAndGetToken('userA@test.com');
-    userBToken = await registerAndGetToken('userB@test.com');
-  });
-
   it('user B cannot GET a monitor owned by user A (404, not 403 or 200)', async () => {
-    const createRes = await request(app)
+    const userA = await registeredAgent('userA-get@test.com');
+    const userB = await registeredAgent('userB-get@test.com');
+
+    const createRes = await userA
       .post('/monitors')
-      .set('Authorization', `Bearer ${userAToken}`)
       .send({ name: 'A monitor', url: 'https://example.com' });
 
-    const monitorId = createRes.body.id;
-
-    const res = await request(app)
-      .get(`/monitors/${monitorId}`)
-      .set('Authorization', `Bearer ${userBToken}`);
-
+    const res = await userB.get(`/monitors/${createRes.body.id}`);
     expect(res.status).toBe(404);
   });
 
   it('user B cannot PATCH a monitor owned by user A', async () => {
-    const createRes = await request(app)
+    const userA = await registeredAgent('userA-patch@test.com');
+    const userB = await registeredAgent('userB-patch@test.com');
+
+    const createRes = await userA
       .post('/monitors')
-      .set('Authorization', `Bearer ${userAToken}`)
       .send({ name: 'A monitor', url: 'https://example.com' });
 
-    const res = await request(app)
-      .patch(`/monitors/${createRes.body.id}`)
-      .set('Authorization', `Bearer ${userBToken}`)
-      .send({ name: 'hijacked' });
-
+    const res = await userB.patch(`/monitors/${createRes.body.id}`).send({ name: 'hijacked' });
     expect(res.status).toBe(404);
 
-    // Confirm it genuinely wasn't changed, not just that the response was 404
-    const check = await request(app)
-      .get(`/monitors/${createRes.body.id}`)
-      .set('Authorization', `Bearer ${userAToken}`);
+    const check = await userA.get(`/monitors/${createRes.body.id}`);
     expect(check.body.name).toBe('A monitor');
   });
 
   it('user B cannot DELETE a monitor owned by user A', async () => {
-    const createRes = await request(app)
+    const userA = await registeredAgent('userA-delete@test.com');
+    const userB = await registeredAgent('userB-delete@test.com');
+
+    const createRes = await userA
       .post('/monitors')
-      .set('Authorization', `Bearer ${userAToken}`)
       .send({ name: 'A monitor', url: 'https://example.com' });
 
-    const deleteRes = await request(app)
-      .delete(`/monitors/${createRes.body.id}`)
-      .set('Authorization', `Bearer ${userBToken}`);
+    const deleteRes = await userB.delete(`/monitors/${createRes.body.id}`);
     expect(deleteRes.status).toBe(404);
 
-    const stillThere = await request(app)
-      .get(`/monitors/${createRes.body.id}`)
-      .set('Authorization', `Bearer ${userAToken}`);
+    const stillThere = await userA.get(`/monitors/${createRes.body.id}`);
     expect(stillThere.status).toBe(200);
   });
 
-  it('requests with no token are rejected with 401', async () => {
+  it('requests with no session are rejected with 401', async () => {
     const res = await request(app).get('/monitors');
     expect(res.status).toBe(401);
   });
