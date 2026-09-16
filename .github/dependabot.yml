@@ -1,0 +1,26 @@
+version: 2
+updates:
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 5
+    groups:
+      # Batch minor/patch bumps into one PR instead of 15 separate tiny PRs -
+      # major version bumps still get their own individual PR, since those are
+      # the ones actually worth reviewing carefully.
+      minor-and-patch:
+        update-types: ['minor', 'patch']
+
+  - package-ecosystem: 'docker'
+    directory: '/api'
+    schedule:
+      interval: 'weekly'
+  - package-ecosystem: 'docker'
+    directory: '/worker'
+    schedule:
+      interval: 'weekly'
+  - package-ecosystem: 'docker'
+    directory: '/frontend'
+    schedule:
+      interval: 'weekly'
