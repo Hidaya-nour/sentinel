@@ -1,6 +1,8 @@
-import { request } from 'undici';
+import { Agent, request } from 'undici';
 import { connect } from 'node:tls';
 import { URL } from 'node:url';
+
+const httpDispatcher = new Agent({ maxRedirections: 5 });
 
 export interface CheckResult {
   success: boolean;
@@ -18,7 +20,7 @@ export async function performCheck(url: string, expectedStatus: number): Promise
       method: 'GET',
       headersTimeout: 10_000,
       bodyTimeout: 10_000,
-      maxRedirections: 5, // follow up to 5 redirects, then treat further redirects as failure
+      dispatcher: httpDispatcher,
     });
     const latencyMs = Date.now() - start;
 
