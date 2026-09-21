@@ -1,13 +1,29 @@
 import 'dotenv/config';
+import express from 'express';
 import { Worker } from 'bullmq';
 import { Redis } from 'ioredis';
 import { prisma } from './lib/prisma.js';
 import { performCheck } from './lib/checker.js';
 import { decideIncidentAction } from './lib/incidents.js';
 
-interface CheckJobData {
+// Keep the worker's job payload type local so its TypeScript project does not
+// include source files from the API project outside its rootDir.
+type CheckJobData = {
   monitorId: string;
-}
+};
+
+// Render's free tier requires a "Web Service" that binds to a port and responds
+// to HTTP - it has no free tier for a pure background process. This tiny server
+// exists only to satisfy that requirement; it does not affect job processing,
+// which still happens entirely through the BullMQ worker below.
+const app = express();
+const PORT = process.env.PORT ?? 4001;
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ status: 'ok', uptime: process.uptime() });
+});
+app.listen(PORT, () => {
+  console.log(JSON.stringify({ level: 'info', msg: `worker health server listening on ${PORT}` }));
+});
 
 const connection = new Redis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
   maxRetriesPerRequest: null,
@@ -18,7 +34,7 @@ const worker = new Worker<CheckJobData>(
   async (job) => {
     const monitor = await prisma.monitor.findUnique({ where: { id: job.data.monitorId } });
     if (!monitor || !monitor.isActive) {
-      return; // monitor was deleted/paused after the job was scheduled - skip silently
+      return;
     }
 
     const result = await performCheck(monitor.url, monitor.expectedStatus);
@@ -50,7 +66,6 @@ const worker = new Worker<CheckJobData>(
     if (action === 'OPEN') {
       await prisma.incident.create({ data: { monitorId: monitor.id, status: 'OPEN' } });
       console.log(JSON.stringify({ level: 'warn', msg: 'incident opened', monitorId: monitor.id }));
-      // Webhook alerting hooks in here - Phase 3 stretch, or fold into Phase 9.
     } else if (action === 'RESOLVE' && openIncident) {
       await prisma.incident.update({
         where: { id: openIncident.id },
