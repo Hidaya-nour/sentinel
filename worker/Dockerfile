@@ -1,4 +1,4 @@
-FROM node:22-slim  AS deps
+FROM node:25-slim  AS deps
 WORKDIR /app
 RUN apt-get update -y && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
@@ -8,7 +8,7 @@ COPY frontend/package.json ./frontend/
 COPY api/prisma ./api/prisma
 RUN npm ci --workspace=worker
 
-FROM node:22-slim  AS build
+FROM node:25-slim  AS build
 WORKDIR /app
 RUN apt-get update -y && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 COPY --from=deps /app/node_modules ./node_modules
@@ -21,7 +21,7 @@ COPY frontend/package.json ./frontend/
 RUN npx prisma generate --schema=api/prisma/schema.prisma
 RUN npm run build --workspace=worker
 
-FROM node:22-slim  AS production
+FROM node:25-slim  AS production
 WORKDIR /app
 ENV NODE_ENV=production
 RUN apt-get update -y && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
